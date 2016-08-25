@@ -1,0 +1,95 @@
+<html ng-app='friends_app'>
+<head>
+	<title>Full Mean Demo</title>
+	<script src="https://ajax.googleapis.com/ajax/libs/angularjs/1.5.7/angular.min.js"></script>
+	<script src="https://ajax.googleapis.com/ajax/libs/angularjs/1.5.7/angular-route.min.js"></script>
+	<link rel="stylesheet" href="http://maxcdn.bootstrapcdn.com/bootstrap/3.3.1/css/bootstrap.min.css">
+	<script type="text/javascript">
+
+		var friends_app = angular.module('friends_app', []);
+
+		// --------------- factory --------------------------
+
+		friends_app.factory('FriendFactory', function($http){
+			var factory = {};
+			var friends = [];
+
+			// RESTful syntax: index = get all the objects
+
+			factory.index = function(callback) {
+				// sends a http request to a url of our backend
+				// this could be /friends or whatever you want it to be
+				// as long server is listening for this url
+
+				// once the response comes back, the factory runs a callback
+				//
+				$http.get('/friends').then(function(res){
+
+					// console.log(res);
+					callback(res.data);
+				})
+			}
+			// RESTful syntax: create = create a new instance of the friend object
+			factory.create = function(friend, callback){
+				$http.post('/friends', friend).then(function(res){
+					callback(res);
+				})
+			}
+			// RESTFul syntax: delete = remove item from the scope & DB
+			factory.delete = function(friend,callback){
+				$http.post('/delete/' + friend._id).then(function(res){
+					callback(res);
+				})
+			}
+			return factory;
+		});
+
+
+		// --------------- controllers ----------------------
+
+		friends_app.controller('FriendsController', function($scope, FriendFactory){
+
+			FriendFactory.index(function(data){
+				$scope.friends = data;
+			});
+
+			$scope.addFriend = function(){
+				FriendFactory.create($scope.new_friend, function(data){
+					FriendFactory.index(function(data){
+						$scope.friends = data;
+						$scope.new_friend = {};
+					});
+				});
+			};
+			$scope.destroyFriend = function(friend) {
+				FriendFactory.delete(friend, function(data){
+					console.log("this is the data: " + data);
+					FriendFactory.index(function(data){
+						$scope.friends = data;
+					});
+				});
+			};
+		});
+
+	</script>
+</head>
+
+<!-- everything in the body is using the friends controller  -->
+<body ng-controller="FriendsController">
+	<h1>Friends</h1>
+	<input type="text" ng-model="filter_name" placeholder="filter">
+	{{filter_name}}
+
+	<ul>
+		<li ng-repeat="friend in friends | filter: filter_name">{{friend.name}}: {{friend.age}}
+			<button ng-click="destroyFriend(friend)">UnFriend</button></li>
+	</ul>
+
+
+	<h1>Add a Friend</h1>
+
+	<input type="text" ng-model="new_friend.name" placeholder="name">
+	<input type="text" ng-model="new_friend.age" placeholder="age">
+	<input type="submit" ng-click="addFriend()">
+</body>
+</html>
